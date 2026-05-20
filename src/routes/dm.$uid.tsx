@@ -70,7 +70,7 @@ function DMThread() {
 
   return (
     <div className="min-h-screen bg-sunset-50 text-sunset-900">
-      <div className="max-w-[460px] mx-auto min-h-screen flex flex-col p-6 gap-4 pb-32">
+      <div className="w-full sm:max-w-[480px] mx-auto min-h-[100dvh] flex flex-col p-6 gap-4 pb-32">
         <div className="flex items-center justify-between">
           <button onClick={() => navigate({ to: "/dm" })} className="text-sm opacity-60">
             ← Back

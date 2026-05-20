@@ -1,10 +1,13 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { onValue, ref } from "firebase/database";
-import { db, VOICE_ROOT } from "@/lib/firebase";
+import { db, VOICE_ROOT, ADMIN_EMAIL } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { BottomNav } from "@/components/BottomNav";
+import { MobileShell } from "@/components/MobileShell";
+import { GuestExpiryCard } from "@/components/GuestExpiryCard";
 import { badgeFor } from "@/lib/streak";
+import { listenUserStats, listenUserPosts, type UserStats } from "@/lib/social";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile — Heartable" }] }),
@@ -15,6 +18,8 @@ function ProfilePage() {
   const { user, profile, isGuest, signOut, upgradeGuestEmail, upgradeGuestGoogle } = useAuth();
   const navigate = useNavigate();
   const [streak, setStreak] = useState<{ count: number; badge: string } | null>(null);
+  const [stats, setStats] = useState<UserStats>({ followers: 0, following: 0, totalLikes: 0, totalShares: 0 });
+  const [posts, setPosts] = useState<any[]>([]);
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,10 +27,12 @@ function ProfilePage() {
 
   useEffect(() => {
     if (!user) return;
-    const unsub = onValue(ref(db, `${VOICE_ROOT}/${user.uid}/streak`), (s) =>
+    const u1 = onValue(ref(db, `${VOICE_ROOT}/${user.uid}/streak`), (s) =>
       setStreak(s.val()),
     );
-    return () => unsub();
+    const u2 = listenUserStats(user.uid, setStats);
+    const u3 = listenUserPosts(user.uid, setPosts);
+    return () => { u1(); u2(); u3(); };
   }, [user]);
 
   if (!user || !profile) {
@@ -38,6 +45,7 @@ function ProfilePage() {
 
   const days = streak?.count || 0;
   const badge = streak?.badge || badgeFor(days);
+  const isAdmin = user.email === ADMIN_EMAIL;
 
   const upgradeEmail = async () => {
     setBusy(true); setErr(null);
@@ -54,18 +62,33 @@ function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-sunset-50 text-sunset-900">
-      <div className="max-w-[460px] mx-auto min-h-screen flex flex-col p-6 gap-5 pb-32">
-        <div className="flex items-center gap-4">
+    <MobileShell className="p-5 gap-5">
+        <div className="flex items-center gap-4 mt-3">
           <div className="size-16 rounded-full bg-sunset-900 text-sunset-50 grid place-items-center text-2xl font-semibold overflow-hidden">
             {profile.photo ? <img src={profile.photo} className="w-full h-full object-cover" /> : profile.name.slice(0, 1).toUpperCase()}
           </div>
           <div>
             <h1 className="font-serif italic text-3xl leading-none">{profile.name}</h1>
             <p className="text-xs opacity-60 mt-1">
-              {isGuest ? "Guest · 7 din" : user.email || "Signed in"}
+              {isGuest ? "Guest account" : user.email || "Signed in"}
+              {isAdmin && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-sunset-900 text-sunset-50 text-[9px] uppercase tracking-widest">Admin</span>}
             </p>
           </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-4 gap-2 bg-white rounded-2xl p-3 ring-1 ring-foreground/5 text-center">
+          {[
+            { k: stats.followers, l: "Followers" },
+            { k: stats.following, l: "Following" },
+            { k: stats.totalLikes, l: "Likes" },
+            { k: stats.totalShares, l: "Shares" },
+          ].map((s) => (
+            <div key={s.l}>
+              <p className="font-serif italic text-xl leading-none">{s.k}</p>
+              <p className="text-[9px] uppercase tracking-widest opacity-60 mt-1">{s.l}</p>
+            </div>
+          ))}
         </div>
 
         <div className="bg-sunset-900 text-sunset-50 rounded-2xl px-5 py-4 flex items-center justify-between">
@@ -76,19 +99,23 @@ function ProfilePage() {
           <div className="text-3xl">🎙️</div>
         </div>
 
+        {isGuest && profile.guestExpiresAt && (
+          <GuestExpiryCard expiresAt={profile.guestExpiresAt} />
+        )}
+
         {isGuest && (
           <div className="bg-white rounded-2xl p-5 ring-1 ring-foreground/5 space-y-3">
             <h2 className="font-serif italic text-xl">Save your streaks</h2>
             <p className="text-xs opacity-70">
-              Guest mode 7 din ka hai. Email ya Google se account bana le — streak,
-              friends, sab save reh jaayega.
+              Guest mode 7 din ka hai. Google se bind kar — data tere paas hi rahega,
+              streaks aur followers bach jaayenge.
             </p>
             <button
               onClick={upgradeGoogle}
               disabled={busy}
               className="w-full py-3 rounded-full bg-white ring-1 ring-foreground/10 text-sm font-semibold hover:bg-sunset-50 transition disabled:opacity-50"
             >
-              Link with Google
+              🔗 Link with Google
             </button>
             <div className="space-y-2">
               <input
@@ -117,6 +144,44 @@ function ProfilePage() {
           </div>
         )}
 
+        {/* My posts */}
+        {posts.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="font-serif italic text-lg">Meri Awaazein · {posts.length}</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {posts.slice(0, 9).map((p) => (
+                <Link
+                  key={p.id}
+                  to="/p/$id"
+                  params={{ id: p.id }}
+                  className="aspect-square rounded-xl bg-gradient-to-br from-sunset-300 to-sunset-700 p-3 text-sunset-50 flex flex-col justify-between"
+                >
+                  <span className="text-[10px] opacity-80">🎙️ {Math.round(p.durationSec)}s</span>
+                  <span className="text-[10px] font-medium truncate">
+                    {p.caption || "voice"}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Link
+          to="/support"
+          className="w-full py-3 rounded-full bg-white ring-1 ring-foreground/10 text-sm font-medium text-center"
+        >
+          💬 Help / Support
+        </Link>
+
+        {isAdmin && (
+          <Link
+            to="/admin"
+            className="w-full py-3 rounded-full bg-sunset-900 text-sunset-50 text-sm font-semibold text-center"
+          >
+            Admin Panel →
+          </Link>
+        )}
+
         <button
           onClick={async () => { await signOut(); navigate({ to: "/login" }); }}
           className="w-full py-3 rounded-full bg-sunset-100 text-sunset-900 text-sm font-medium hover:bg-sunset-200 transition"
@@ -125,7 +190,6 @@ function ProfilePage() {
         </button>
 
         <BottomNav />
-      </div>
-    </div>
+    </MobileShell>
   );
 }

@@ -1,88 +1,147 @@
-## Heartable — Full Build Plan
+# Heartable — Bada Update Plan
 
-Bhai ye bohot bada scope hai — ek hi turn me sab "perfect" karna realistic nahi, isliye main phased approach me banaunga. Tu approve kar to main sab implement karna shuru kar du.
+Bahut saare features ek saath maange hain. Main inhe **4 phases** me todunga taaki har phase test ho sake. Aap "ha shuru kro" bolenge to phase 1 se start karunga, ya specific phase chunenge.
 
-### Tech decisions
+---
 
-- **Auth & DB**: Firebase (jaisa tune diya) — `firebase/app`, `firebase/auth` (Google + Email/Password + Anonymous for guest), `firebase/database` (Realtime DB), `firebase/storage` (voice files).
-- **Note**: Lovable Cloud nahi use kar raha kyunki tu explicitly Firebase chahta hai. Firebase config inline rahega (publishable keys, safe).
-- **Recording**: Browser `MediaRecorder` API → Blob → Firebase Storage → URL Realtime DB me save.
-- **Filters**: Web Audio API (`AudioContext`) se Echo / Slow / Bass Boost / Reverb / Sad Vibe — playback-time effects (true server-side processing avoid, kyunki edge worker me ffmpeg nahi chalega).
-- **Waveform**: Live recording me `AnalyserNode`, feed me static bars decoded from audio buffer.
-- **Splash**: Pehli load pe full-screen animated intro (logo + sunset gradient + Instrument Serif "Heartable" reveal), then home.
+## Phase 1 — Foundation Fixes (chhoti but zaroori cheezein)
 
-### Firebase data shape
+1. **Guest quota timezone-safe**
+   - `todayKey()` me user ke local timezone ka YYYY-MM-DD use hoga (abhi bhi local hai but explicit karunga)
+   - Quota UI me midnight ke baad auto-refresh (poll har 15s already hai — date change detect karunga)
+   - Server-side rule bhi date-key ke saath enforce hoga
 
+2. **Guest 7-day expiry — live timer + disable**
+   - Profile page me bada countdown card ("6d 4h 22m baaki")
+   - Home header me chhota chip
+   - Expiry hote hi auto sign-out + `/login` pe "Account expire ho gaya — rebind karein" CTA
+   - Login page pe naya **"Continue with Google to restore"** button (anonymous → Google link agar same browser me session ho)
+
+3. **Mobile UI polish (pura app)**
+   - Sab routes ko `max-w-[460px]` se hata kar fluid responsive (mobile-first, tablet/desktop pe center column)
+   - Bottom nav: safe-area inset, active glow, FAB Mic ko proper raise
+   - Stories bar: snap-scroll, larger touch targets
+   - Recorder card: full-width on mobile, big tap zone
+   - Feed cards: edge-to-edge on <400px
+
+---
+
+## Phase 2 — Short-Voice Social Layer (TikTok-style for voice)
+
+Yeh main feature hai. Concept: vertical swipeable feed of short voice posts (≤60s) with caption, like, comment, share, follow.
+
+### New routes / components
+- `/reels` ya `/home` ko convert — **vertical full-screen voice cards**, swipe up/down (touch + keyboard)
+- Each card: big artwork (user photo blurred bg + waveform), caption/shayari text overlay, play/pause tap-anywhere
+- Action rail (right side): ❤ like count, 💬 comment count, ↗ share, • follow button
+
+### Data model additions (Firebase RTDB)
 ```
-voice/
-  {uid}/
-    profile/          { name, photo, isGuest, createdAt, guestExpiresAt }
-    stories/{id}      { url, filter, createdAt, expiresAt, replays:{}, reactions:{} }
-    snaps/{id}        { url, filter, to, listened, createdAt, expiresAt }
-    streak/           { count, lastDate, badge }
-mehfil/{circleId}/messages/{id}   { uid, name, url, filter, createdAt }
-mehfil/{circleId}/members/{uid}   true
-feed/{id}             { uid, name, text, url, filter, plays, reactions, createdAt }
+feed/{postId}
+  ├─ uid, name, photo, url, filter, caption, durationSec
+  ├─ category: "song" | "shayari" | "story" | "other"
+  ├─ likes: { uid: true }          # count via .size
+  ├─ likeCount: number              # denormalized
+  ├─ commentCount: number
+  └─ shareCount: number
+
+comments/{postId}/{commentId}
+  └─ uid, name, text, createdAt
+
+follows/{followerUid}/{followeeUid}: true
+followers/{followeeUid}/{followerUid}: true
+userStats/{uid}: { followers, following, totalLikes, totalShares }
 ```
 
-Client-side filter: 24hr expiry pe story/snap hide. Optional: scheduled cleanup later.
+### UI work
+- Comment sheet (bottom drawer) with realtime list
+- Share: Web Share API + copy-link fallback (`/p/{postId}` public route)
+- Follow button on cards + profile
+- Profile page redesign: stats row (Followers · Following · Likes · Shares), grid of own posts
+- Category selector on recorder (Song / Shayari / Story / Other)
 
-### Phases
+### Guest restrictions
+- Guest can like + comment (limited?) — confirm: abhi default **like haa, comment 5/day, follow nahi, share haa**
 
-**Phase 1 — Foundation**
-- `src/lib/firebase.ts` — initialize app, auth, db, storage.
-- `src/lib/auth-context.tsx` — React context: user, isGuest, signInGoogle, signInEmail, signUpEmail, signInGuest(name), signOut.
-- Splash screen route `/` shows animated intro 2.5s on first load (sessionStorage flag), then redirects to `/home`.
-- Routes: `/login`, `/home` (current feed), `/record`, `/story/$id`, `/mehfil/$id`, `/dm/$uid`, `/profile`.
+---
 
-**Phase 2 — Auth UI**
-- `/login` page: Google button, email/password form, "Continue as Guest" (asks name → anonymous signIn → writes profile with `guestExpiresAt = now + 7d`).
-- Terms & Conditions + Privacy note: "Your data is stored in India-region Firebase and end-to-end secured" checkbox before sign-in.
-- Guest expiry check on app load — if expired, force show login & hide guest option for that anon UID.
-- "Save your streaks" CTA in profile for guests → upgrade to email/Google (link anonymous account).
+## Phase 3 — Daily Streak Browser Notifications
 
-**Phase 3 — Voice recording + filters + storage**
-- `useRecorder()` hook: start/stop, returns Blob + live amplitude array.
-- Recording UI on home hero & dedicated `/record`: hold-to-record (max 60s), live waveform via AnalyserNode, filter chip selection.
-- Upload Blob → `storage/voice/{uid}/{ts}.webm` → push to `feed/` or `snaps/` or `stories/`.
-- Playback component: fetches URL, applies Web Audio filter graph based on `filter` field, draws waveform from decoded buffer, play/pause.
+- Service worker register (`/sw.js`) for push
+- `Notification.requestPermission()` on first home visit (soft prompt card first)
+- Local scheduled reminder via SW + IndexedDB timestamp (every evening 8pm local if streak risk)
+- Admin broadcast push (Phase 4 se connect)
+- FCM Web Push setup using existing Firebase project (requires VAPID key — aap Firebase Console → Cloud Messaging → Web Push certs se generate karenge, mujhe paste karenge)
 
-**Phase 4 — Stories (24h)**
-- Story strip on home reads from `voice/*/stories` across followed users (for MVP: all users).
-- Tap → full-screen player, auto-progress, "Replay 1x" button (tracks `replays[uid]`), reactions (❤️🔥😢).
-- Client filters items where `expiresAt < now`.
+---
 
-**Phase 5 — 1-on-1 voice notes (DM)**
-- `/dm/$uid` thread: list of voice notes between current user ↔ peer, send recorder at bottom.
-- "Disappears after listen" — on play, write `listened: true`, then hide.
+## Phase 4 — Admin Panel + Support System
 
-**Phase 6 — Mehfil group circle**
-- `/mehfil/$id` — circular avatar arrangement of members, tap center to record & broadcast to circle, list of recent voice notes with play buttons.
-- Create circle flow + invite by username.
+Admin: **schoudhary11256@gmail.com** (hardcoded check in admin route guard)
 
-**Phase 7 — Awaaz Streak**
-- On every voice send: check `streak.lastDate`. If yesterday → +1, if today → noop, else reset to 1.
-- Badges: 7 = Silver Mic, 30 = Gold Mic, 100 = Diamond.
-- Reminder: client-side check at app load — if `lastDate` is yesterday and now > 20:00, show toast "Aaj awaaz nahi bheji, streak tootne wali hai!"
+### `/admin` route (only for admin email)
+- **Dashboard**: total users, active today, voices posted, guest vs full breakdown
+- **Users tab**: search, view profile, disable account, delete posts, promote
+- **Broadcast tab**:
+  - Title + message input → send to all users (in-app banner + browser push)
+  - Stored in `broadcasts/{id}` — clients listen and show
+- **Tickets tab**:
+  - List of open support tickets
+  - Click → chat thread with user
+  - Mark resolved
+  - **Admin online indicator** — admin presence at `admin/presence` (RTDB onDisconnect)
 
-**Phase 8 — Splash + polish**
-- Animated SVG/Motion splash: sunset gradient sweep + "Heartable" italic reveal + tagline fade.
-- Bottom nav wired to real routes.
-- Remove all mock `feed`, `stories` arrays — replace with realtime `onValue` listeners.
+### User-side support
+- Profile → "Help / Support" button → opens chat
+- If admin online → realtime chat
+- If offline → "Aap queue me hain, ticket #123. Admin online hote hi jawaab milega" — store at `tickets/{ticketId}/messages`
+- Ticket creation auto on first message
 
-### Files to create / change
+### Data model
+```
+admin/presence: { online: bool, lastSeen }
+broadcasts/{id}: { title, body, createdAt, sentBy }
+tickets/{ticketId}: { uid, name, status: "open"|"resolved", createdAt, lastMsgAt }
+tickets/{ticketId}/messages/{msgId}: { from: "user"|"admin", text, createdAt }
+```
 
-- new: `src/lib/firebase.ts`, `src/lib/auth-context.tsx`, `src/lib/recorder.ts`, `src/lib/audio-filters.ts`, `src/lib/streak.ts`
-- new components: `Splash`, `VoicePlayer`, `Recorder`, `StoryViewer`, `LoginCard`, `GuestNameDialog`, `TermsCheckbox`
-- new routes: `login.tsx`, `home.tsx`, `record.tsx`, `story.$id.tsx`, `mehfil.$id.tsx`, `dm.$uid.tsx`, `profile.tsx`
-- rewrite: `src/routes/index.tsx` → splash + redirect
-- deps: `firebase`, `motion`
+---
 
-### Important caveats
+## Firebase Console — Aapka Manual Kaam
 
-1. **End-to-end encryption** — true E2EE (only sender+receiver can decrypt) Firebase RTDB me out-of-the-box nahi. Main "in transit + at rest encrypted" (Firebase default TLS + Google's at-rest encryption) implement karunga aur UI me wahi messaging dikhaunga. Asli E2EE chahiye to alag custom crypto layer chahiye — bata to add karunga.
-2. **India region**: Firebase project tu jo de raha hai uska region tune Firebase console me set kiya hoga. Code me bas use karenge — region change console se hota hai.
-3. **Filters server-side nahi** — playback-time apply honge. Recorded file raw rahega (smaller, flexible). Agar tu chahta hai filter "baked in" file me ho to ek extra step chahiye (recordable AudioContext) — bata to wahi karunga.
-4. **Size**: Ye 12-18 files ka build hai. Main ek hi turn me sab likhunga but kuch polish (e.g. Mehfil circle animation, perfect splash timing) shayad iterate karna pade.
+Phase 1 ke baad confirm karunga ki yeh sab apply hua:
 
-Approve karega to start kar deta hu. Ya kuch tweak karna hai (e.g. "phase 1-4 only abhi, rest baad me")?
+### 1. Authentication → Sign-in method
+- Email/Password: **Enable**
+- Google: **Enable** (project support email select karein)
+- Anonymous: **Enable**
+
+### 2. Realtime Database → Rules
+Main exact JSON dunga jo paste karna hai. Includes:
+- `voice/{uid}` — sirf owner write
+- `voice/{uid}/quota/{date}` — increment-only, max 4 for guest
+- `feed/{postId}` — auth read, owner write, likes/comments append rules
+- `comments`, `follows`, `tickets`, `broadcasts`, `admin/presence` — per-feature rules
+- Admin override via `auth.token.email == 'schoudhary11256@gmail.com'`
+
+### 3. Storage → Rules
+- `/voice/{uid}/**` — sirf owner upload, max 10MB, audio/* only
+
+### 4. Cloud Messaging
+- Web Push certificates → generate VAPID key pair → public key mujhe dena
+
+### 5. Custom Claims (admin)
+- Console me admin user ke liye custom claim set karna hoga — main aapko Firebase Functions ya gcloud command dunga. (Ya simpler: email-based check, jo low-security but quick hai. **Recommend: email check + RTDB rules me email match** — confirm karein.)
+
+---
+
+## Recommended Order
+
+Main suggest karta hoon: **Phase 1 → 2 → 4 → 3** (push notifications last kyunki VAPID key chahiye).
+
+**Aap kya chahte hain?**
+
+A) Yes, plan accept — Phase 1 abhi shuru karo
+B) Pehle Phase 2 (short-voice feed) — wahi sabse important hai
+C) Sirf admin panel pehle banao
+D) Sab ek saath ek hi mega-commit me (risky, but possible — 30+ files change honge)

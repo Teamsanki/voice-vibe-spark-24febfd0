@@ -49,6 +49,7 @@ export async function postFeed(opts: {
   filter: VoiceFilter;
   caption?: string;
   durationSec: number;
+  category?: "song" | "shayari" | "story" | "other";
 }) {
   const { url } = await uploadBlob(opts.uid, opts.blob, "feed");
   const node = push(dbRef(db, "feed"));
@@ -59,9 +60,12 @@ export async function postFeed(opts: {
     url,
     filter: opts.filter,
     caption: opts.caption || "",
+    category: opts.category || "other",
     durationSec: opts.durationSec,
     plays: 0,
-    reactions: 0,
+    likeCount: 0,
+    commentCount: 0,
+    shareCount: 0,
     createdAt: serverTimestamp(),
   });
   await bumpStreak(opts.uid);

@@ -1,0 +1,99 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": false,
+
+    "voice": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid",
+        "quota": {
+          "$date": {
+            ".validate": "newData.isNumber() && newData.val() <= 4 && (!data.exists() || newData.val() === data.val() + 1)"
+          }
+        }
+      }
+    },
+
+    "feed": {
+      ".read": "auth != null",
+      "$postId": {
+        ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || auth.token.email === 'schoudhary11256@gmail.com')",
+        "likes": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        },
+        "likeCount": { ".write": "auth != null" },
+        "commentCount": { ".write": "auth != null" },
+        "shareCount": { ".write": "auth != null" }
+      }
+    },
+
+    "comments": {
+      "$postId": {
+        ".read": "auth != null",
+        "$cid": {
+          ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || auth.token.email === 'schoudhary11256@gmail.com')",
+          ".validate": "newData.child('uid').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length <= 300"
+        }
+      }
+    },
+
+    "follows": {
+      "$followerUid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $followerUid"
+      }
+    },
+    "followers": {
+      "$followeeUid": {
+        ".read": "auth != null",
+        "$followerUid": {
+          ".write": "auth != null && auth.uid === $followerUid"
+        }
+      }
+    },
+
+    "userStats": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+
+    "dm": {
+      "$thread": {
+        ".read": "auth != null && $thread.contains(auth.uid)",
+        ".write": "auth != null && $thread.contains(auth.uid)"
+      }
+    },
+
+    "mehfil": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null"
+      }
+    },
+
+    "broadcasts": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.email === 'schoudhary11256@gmail.com'"
+    },
+
+    "admin": {
+      ".read": "auth != null",
+      "presence": {
+        ".write": "auth != null && auth.token.email === 'schoudhary11256@gmail.com'"
+      }
+    },
+
+    "tickets": {
+      ".read": "auth != null && auth.token.email === 'schoudhary11256@gmail.com'",
+      "$id": {
+        ".read": "auth != null && (data.child('uid').val() === auth.uid || auth.token.email === 'schoudhary11256@gmail.com')",
+        ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || auth.token.email === 'schoudhary11256@gmail.com')"
+      }
+    }
+  }
+}
