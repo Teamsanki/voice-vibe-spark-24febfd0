@@ -40,7 +40,7 @@ function DMList() {
 
   return (
     <div className="min-h-screen bg-sunset-50 text-sunset-900">
-      <div className="max-w-[460px] mx-auto min-h-screen flex flex-col p-6 gap-5 pb-32">
+      <div className="w-full sm:max-w-[480px] mx-auto min-h-[100dvh] flex flex-col p-6 gap-5 pb-32">
         <h1 className="font-serif italic text-3xl">Voice Notes</h1>
         <p className="text-sm opacity-70">1-on-1 awaaz — sun li to gayab.</p>
 
