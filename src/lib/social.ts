@@ -18,20 +18,20 @@ export async function toggleLike(postId: string, uid: string) {
   const liked = snap.exists();
   if (liked) {
     await remove(likeRef);
-    await runTransaction(ref(db, `feed/${postId}/likeCount`), (n) =>
+    await runTransaction(ref(db, `feed/${postId}/likeCount`), (n: any) =>
       Math.max(0, (n || 0) - 1),
     );
     return false;
   }
   await set(likeRef, true);
-  await runTransaction(ref(db, `feed/${postId}/likeCount`), (n) => (n || 0) + 1);
+  await runTransaction(ref(db, `feed/${postId}/likeCount`), (n: any) => (n || 0) + 1);
   // bump owner stats
   const ownerSnap = await get(ref(db, `feed/${postId}/uid`));
   const owner = ownerSnap.val();
   if (owner)
     await runTransaction(
       ref(db, `userStats/${owner}/totalLikes`),
-      (n) => (n || 0) + 1,
+      (n: any) => (n || 0) + 1,
     );
   return true;
 }
@@ -48,7 +48,7 @@ export async function addComment(
 ) {
   const node = push(ref(db, `comments/${postId}`));
   await set(node, { uid, name, text: text.slice(0, 300), createdAt: Date.now() });
-  await runTransaction(ref(db, `feed/${postId}/commentCount`), (n) => (n || 0) + 1);
+  await runTransaction(ref(db, `feed/${postId}/commentCount`), (n: any) => (n || 0) + 1);
   return node.key!;
 }
 
@@ -66,11 +66,11 @@ export function listenComments(
 }
 
 export async function recordShare(postId: string, sharerUid?: string) {
-  await runTransaction(ref(db, `feed/${postId}/shareCount`), (n) => (n || 0) + 1);
+  await runTransaction(ref(db, `feed/${postId}/shareCount`), (n: any) => (n || 0) + 1);
   if (sharerUid)
     await runTransaction(
       ref(db, `userStats/${sharerUid}/totalShares`),
-      (n) => (n || 0) + 1,
+      (n: any) => (n || 0) + 1,
     );
 }
 
@@ -82,11 +82,11 @@ export async function follow(followerUid: string, followeeUid: string) {
   });
   await runTransaction(
     ref(db, `userStats/${followerUid}/following`),
-    (n) => (n || 0) + 1,
+    (n: any) => (n || 0) + 1,
   );
   await runTransaction(
     ref(db, `userStats/${followeeUid}/followers`),
-    (n) => (n || 0) + 1,
+    (n: any) => (n || 0) + 1,
   );
 }
 
@@ -97,11 +97,11 @@ export async function unfollow(followerUid: string, followeeUid: string) {
   });
   await runTransaction(
     ref(db, `userStats/${followerUid}/following`),
-    (n) => Math.max(0, (n || 0) - 1),
+    (n: any) => Math.max(0, (n || 0) - 1),
   );
   await runTransaction(
     ref(db, `userStats/${followeeUid}/followers`),
-    (n) => Math.max(0, (n || 0) - 1),
+    (n: any) => Math.max(0, (n || 0) - 1),
   );
 }
 
