@@ -1,29 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { onValue, ref, query, orderByChild, limitToLast, get } from "firebase/database";
+import { onValue, ref, query, orderByChild, limitToLast } from "firebase/database";
 import { db, VOICE_ROOT } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { Recorder } from "@/components/Recorder";
-import { VoicePlayer } from "@/components/VoicePlayer";
 import { BottomNav } from "@/components/BottomNav";
+import { MobileShell } from "@/components/MobileShell";
+import { FeedCard, type FeedItem } from "@/components/FeedCard";
+import { BroadcastBanner } from "@/components/BroadcastBanner";
+import { GuestExpiryCard } from "@/components/GuestExpiryCard";
 import { postFeed, postStory } from "@/lib/voice-api";
 import { consumeGuestQuota, getGuestQuota } from "@/lib/voice-api";
 import { shouldRemindStreakBreak, badgeFor } from "@/lib/streak";
 import type { VoiceFilter } from "@/lib/audio-filters";
-
-type FeedItem = {
-  id: string;
-  uid: string;
-  name: string;
-  photo?: string | null;
-  url: string;
-  filter: VoiceFilter;
-  caption?: string;
-  durationSec: number;
-  plays: number;
-  reactions: number;
-  createdAt: number;
-};
 
 type StoryItem = {
   id: string;
