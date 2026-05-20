@@ -19,6 +19,9 @@ export const GUEST_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const VOICE_ROOT = "voice";
 
+/** Admin email — hardcoded for admin panel access. */
+export const ADMIN_EMAIL = "schoudhary11256@gmail.com";
+
 const isBrowser = typeof window !== "undefined";
 
 // Initialize only on browser. On SSR these will be undefined and any caller
