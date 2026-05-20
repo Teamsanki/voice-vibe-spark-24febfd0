@@ -9,17 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as RecordRouteImport } from './routes/record'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MehfilRouteImport } from './routes/mehfil'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as DmRouteImport } from './routes/dm'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoryIdRouteImport } from './routes/story.$id'
+import { Route as PIdRouteImport } from './routes/p.$id'
 import { Route as MehfilIdRouteImport } from './routes/mehfil.$id'
 import { Route as DmUidRouteImport } from './routes/dm.$uid'
 
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RecordRoute = RecordRouteImport.update({
   id: '/record',
   path: '/record',
@@ -50,6 +58,11 @@ const DmRoute = DmRouteImport.update({
   path: '/dm',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -58,6 +71,11 @@ const IndexRoute = IndexRouteImport.update({
 const StoryIdRoute = StoryIdRouteImport.update({
   id: '/story/$id',
   path: '/story/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PIdRoute = PIdRouteImport.update({
+  id: '/p/$id',
+  path: '/p/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MehfilIdRoute = MehfilIdRouteImport.update({
@@ -73,93 +91,121 @@ const DmUidRoute = DmUidRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/dm': typeof DmRouteWithChildren
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/mehfil': typeof MehfilRouteWithChildren
   '/profile': typeof ProfileRoute
   '/record': typeof RecordRoute
+  '/support': typeof SupportRoute
   '/dm/$uid': typeof DmUidRoute
   '/mehfil/$id': typeof MehfilIdRoute
+  '/p/$id': typeof PIdRoute
   '/story/$id': typeof StoryIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/dm': typeof DmRouteWithChildren
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/mehfil': typeof MehfilRouteWithChildren
   '/profile': typeof ProfileRoute
   '/record': typeof RecordRoute
+  '/support': typeof SupportRoute
   '/dm/$uid': typeof DmUidRoute
   '/mehfil/$id': typeof MehfilIdRoute
+  '/p/$id': typeof PIdRoute
   '/story/$id': typeof StoryIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/dm': typeof DmRouteWithChildren
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/mehfil': typeof MehfilRouteWithChildren
   '/profile': typeof ProfileRoute
   '/record': typeof RecordRoute
+  '/support': typeof SupportRoute
   '/dm/$uid': typeof DmUidRoute
   '/mehfil/$id': typeof MehfilIdRoute
+  '/p/$id': typeof PIdRoute
   '/story/$id': typeof StoryIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/dm'
     | '/home'
     | '/login'
     | '/mehfil'
     | '/profile'
     | '/record'
+    | '/support'
     | '/dm/$uid'
     | '/mehfil/$id'
+    | '/p/$id'
     | '/story/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/dm'
     | '/home'
     | '/login'
     | '/mehfil'
     | '/profile'
     | '/record'
+    | '/support'
     | '/dm/$uid'
     | '/mehfil/$id'
+    | '/p/$id'
     | '/story/$id'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/dm'
     | '/home'
     | '/login'
     | '/mehfil'
     | '/profile'
     | '/record'
+    | '/support'
     | '/dm/$uid'
     | '/mehfil/$id'
+    | '/p/$id'
     | '/story/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   DmRoute: typeof DmRouteWithChildren
   HomeRoute: typeof HomeRoute
   LoginRoute: typeof LoginRoute
   MehfilRoute: typeof MehfilRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   RecordRoute: typeof RecordRoute
+  SupportRoute: typeof SupportRoute
+  PIdRoute: typeof PIdRoute
   StoryIdRoute: typeof StoryIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/record': {
       id: '/record'
       path: '/record'
@@ -202,6 +248,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DmRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -214,6 +267,13 @@ declare module '@tanstack/react-router' {
       path: '/story/$id'
       fullPath: '/story/$id'
       preLoaderRoute: typeof StoryIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$id': {
+      id: '/p/$id'
+      path: '/p/$id'
+      fullPath: '/p/$id'
+      preLoaderRoute: typeof PIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mehfil/$id': {
@@ -256,14 +316,27 @@ const MehfilRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   DmRoute: DmRouteWithChildren,
   HomeRoute: HomeRoute,
   LoginRoute: LoginRoute,
   MehfilRoute: MehfilRouteWithChildren,
   ProfileRoute: ProfileRoute,
   RecordRoute: RecordRoute,
+  SupportRoute: SupportRoute,
+  PIdRoute: PIdRoute,
   StoryIdRoute: StoryIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
