@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TrendingRouteImport } from './routes/trending'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as RecordRouteImport } from './routes/record'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -23,6 +24,11 @@ import { Route as PIdRouteImport } from './routes/p.$id'
 import { Route as MehfilIdRouteImport } from './routes/mehfil.$id'
 import { Route as DmUidRouteImport } from './routes/dm.$uid'
 
+const TrendingRoute = TrendingRouteImport.update({
+  id: '/trending',
+  path: '/trending',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SupportRoute = SupportRouteImport.update({
   id: '/support',
   path: '/support',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/record': typeof RecordRoute
   '/support': typeof SupportRoute
+  '/trending': typeof TrendingRoute
   '/dm/$uid': typeof DmUidRoute
   '/mehfil/$id': typeof MehfilIdRoute
   '/p/$id': typeof PIdRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/record': typeof RecordRoute
   '/support': typeof SupportRoute
+  '/trending': typeof TrendingRoute
   '/dm/$uid': typeof DmUidRoute
   '/mehfil/$id': typeof MehfilIdRoute
   '/p/$id': typeof PIdRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/record': typeof RecordRoute
   '/support': typeof SupportRoute
+  '/trending': typeof TrendingRoute
   '/dm/$uid': typeof DmUidRoute
   '/mehfil/$id': typeof MehfilIdRoute
   '/p/$id': typeof PIdRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/record'
     | '/support'
+    | '/trending'
     | '/dm/$uid'
     | '/mehfil/$id'
     | '/p/$id'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/record'
     | '/support'
+    | '/trending'
     | '/dm/$uid'
     | '/mehfil/$id'
     | '/p/$id'
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/record'
     | '/support'
+    | '/trending'
     | '/dm/$uid'
     | '/mehfil/$id'
     | '/p/$id'
@@ -193,12 +205,20 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   RecordRoute: typeof RecordRoute
   SupportRoute: typeof SupportRoute
+  TrendingRoute: typeof TrendingRoute
   PIdRoute: typeof PIdRoute
   StoryIdRoute: typeof StoryIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trending': {
+      id: '/trending'
+      path: '/trending'
+      fullPath: '/trending'
+      preLoaderRoute: typeof TrendingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/support': {
       id: '/support'
       path: '/support'
@@ -324,9 +344,20 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   RecordRoute: RecordRoute,
   SupportRoute: SupportRoute,
+  TrendingRoute: TrendingRoute,
   PIdRoute: PIdRoute,
   StoryIdRoute: StoryIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
