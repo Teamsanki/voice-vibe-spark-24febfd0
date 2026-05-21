@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth-context";
+import { NotificationsBridge } from "@/components/NotificationsBridge";
 
 import appCss from "../styles.css?url";
 
@@ -115,6 +116,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <NotificationsBridge />
         <Outlet />
       </AuthProvider>
     </QueryClientProvider>
