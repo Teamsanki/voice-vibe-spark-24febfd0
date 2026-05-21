@@ -1,7 +1,7 @@
 import { push, ref as dbRef, serverTimestamp, set } from "firebase/database";
-import { getDownloadURL, ref as sRef, uploadBytes } from "firebase/storage";
 import { get, runTransaction } from "firebase/database";
-import { db, storage, VOICE_ROOT, GUEST_DAILY_VOICE_LIMIT } from "./firebase";
+import { db, VOICE_ROOT, GUEST_DAILY_VOICE_LIMIT } from "./firebase";
+import { supabase } from "@/integrations/supabase/client";
 import { bumpStreak } from "./streak";
 import type { VoiceFilter } from "./audio-filters";
 
@@ -34,11 +34,16 @@ export async function consumeGuestQuota(uid: string) {
 
 async function uploadBlob(uid: string, blob: Blob, kind: string) {
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const path = `${VOICE_ROOT}/${uid}/${kind}/${id}.webm`;
-  const r = sRef(storage, path);
-  await uploadBytes(r, blob, { contentType: blob.type || "audio/webm" });
-  const url = await getDownloadURL(r);
-  return { id, url, path };
+  // Strip codec params (e.g. "audio/webm;codecs=opus") so Supabase accepts it.
+  const ct = (blob.type || "audio/webm").split(";")[0] || "audio/webm";
+  const ext = ct.includes("mp4") ? "m4a" : ct.includes("ogg") ? "ogg" : "webm";
+  const path = `${uid}/${kind}/${id}.${ext}`;
+  const { error } = await supabase.storage
+    .from("voice")
+    .upload(path, blob, { contentType: ct, upsert: false });
+  if (error) throw new Error(`Upload fail: ${error.message}`);
+  const { data } = supabase.storage.from("voice").getPublicUrl(path);
+  return { id, url: data.publicUrl, path };
 }
 
 export async function postFeed(opts: {
