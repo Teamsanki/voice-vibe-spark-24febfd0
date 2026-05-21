@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Search, Mic, MessageCircle, User } from "lucide-react";
+import { Home, Flame, Mic, MessageCircle, User } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { ADMIN_EMAIL } from "@/lib/firebase";
 
@@ -29,7 +29,7 @@ export function BottomNav() {
       style={{ bottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
     >
       <Item to="/home" icon={Home} label="Home" />
-      <Item to="/mehfil" icon={Search} label="Mehfil" />
+      <Item to="/trending" icon={Flame} label="Trending" />
       <Link
         to="/record"
         aria-label="Record"
