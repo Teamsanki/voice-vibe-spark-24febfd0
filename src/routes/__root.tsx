@@ -78,11 +78,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Heartable — Voices of the Soul" },
       { name: "description", content: "Voice-first social app. Apni awaaz se baat shuru kar." },
       { name: "author", content: "Heartable" },
-      { property: "og:title", content: "Heartable" },
-      { property: "og:description", content: "Voices of the Soul." },
+      { property: "og:title", content: "Heartable — Voices of the Soul" },
+      { property: "og:description", content: "Voice-first social app. Apni awaaz se baat shuru kar." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Heartable — Voices of the Soul" },
+      { name: "twitter:description", content: "Voice-first social app. Apni awaaz se baat shuru kar." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2df7309e-9c48-48e7-8c14-b937dcd98404/id-preview-3ae917de--0bfa6404-6457-46ee-a454-e49e7971f441.lovable.app-1779424076821.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2df7309e-9c48-48e7-8c14-b937dcd98404/id-preview-3ae917de--0bfa6404-6457-46ee-a454-e49e7971f441.lovable.app-1779424076821.png" },
     ],
     links: [
       {
