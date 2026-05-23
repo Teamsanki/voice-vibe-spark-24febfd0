@@ -14,6 +14,10 @@ import {
   setAdminPresence,
   type Ticket,
 } from "@/lib/social";
+import { listenReports, setReportStatus, banUser, warnUser, type Report } from "@/lib/reports";
+import { listenSiteConfig, saveSiteConfig, type SiteConfig } from "@/lib/settings";
+import { deletePost } from "@/lib/social";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — Heartable" }] }),
@@ -23,7 +27,9 @@ export const Route = createFileRoute("/admin")({
 function AdminPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"stats" | "broadcast" | "tickets">("stats");
+  const [tab, setTab] = useState<"stats" | "broadcast" | "tickets" | "reports" | "site">("stats");
+  const [reports, setReports] = useState<Report[]>([]);
+  const [site, setSite] = useState<SiteConfig>({ name: "Heartable", tagline: "Voices of the Soul", favicon: null });
   const [users, setUsers] = useState(0);
   const [voices, setVoices] = useState(0);
   const [guests, setGuests] = useState(0);
@@ -68,7 +74,9 @@ function AdminPage() {
     });
     const u2 = onValue(ref(db, "feed"), (snap) => setVoices(snap.size));
     const u3 = listenAllTickets(setTickets);
-    return () => { u1(); u2(); u3(); };
+    const u4 = listenReports(setReports);
+    const u5 = listenSiteConfig(setSite);
+    return () => { u1(); u2(); u3(); u4(); u5(); };
   }, [isAdmin]);
 
   useEffect(() => {
@@ -112,16 +120,20 @@ function AdminPage() {
         <h1 className="font-serif italic text-3xl">Heartable HQ</h1>
       </div>
 
-      <div className="flex bg-sunset-100 rounded-full p-1 text-xs font-medium">
-        {(["stats", "broadcast", "tickets"] as const).map((t) => (
+      <div className="flex bg-sunset-100 rounded-full p-1 text-[11px] font-medium overflow-x-auto no-scrollbar">
+        {(["stats", "broadcast", "tickets", "reports", "site"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 py-1.5 rounded-full ${
+            className={`flex-1 whitespace-nowrap px-3 py-1.5 rounded-full ${
               tab === t ? "bg-sunset-900 text-sunset-50" : "text-sunset-900/70"
             }`}
           >
-            {t === "stats" ? "Stats" : t === "broadcast" ? "Broadcast" : `Tickets · ${tickets.filter(t=>t.status==="open").length}`}
+            {t === "stats" ? "Stats"
+              : t === "broadcast" ? "Broadcast"
+              : t === "tickets" ? `Tickets · ${tickets.filter(x => x.status === "open").length}`
+              : t === "reports" ? `Reports · ${reports.filter(r => r.status === "open").length}`
+              : "Site"}
           </button>
         ))}
       </div>
