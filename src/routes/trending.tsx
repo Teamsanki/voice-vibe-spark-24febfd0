@@ -7,6 +7,9 @@ import { useAuth } from "@/lib/auth-context";
 import { listenLiked, recordShare, toggleLike } from "@/lib/social";
 import { FollowButton } from "@/components/FollowButton";
 import { CommentSheet } from "@/components/CommentSheet";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { listenMyBlocks } from "@/lib/blocks";
+import type { VoiceFilter } from "@/lib/audio-filters";
 
 type Item = {
   id: string;
@@ -14,6 +17,7 @@ type Item = {
   name: string;
   photo?: string | null;
   url: string;
+  filter?: VoiceFilter;
   caption?: string;
   category?: string;
   durationSec: number;
@@ -35,6 +39,13 @@ export const Route = createFileRoute("/trending")({
 
 function Trending() {
   const [items, setItems] = useState<Item[]>([]);
+  const { user } = useAuth();
+  const [blocks, setBlocks] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user) return;
+    return listenMyBlocks(user.uid, setBlocks);
+  }, [user]);
 
   useEffect(() => {
     const q = query(ref(db, "feed"), orderByChild("createdAt"), limitToLast(50));
@@ -51,6 +62,8 @@ function Trending() {
     });
     return () => unsub();
   }, []);
+
+  const visible = items.filter((it) => !blocks.has(it.uid));
 
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden">
@@ -71,12 +84,12 @@ function Trending() {
         className="h-[100dvh] overflow-y-scroll snap-y snap-mandatory no-scrollbar"
         style={{ scrollbarWidth: "none" }}
       >
-        {items.length === 0 && (
+        {visible.length === 0 && (
           <div className="h-[100dvh] grid place-items-center">
             <p className="opacity-60 text-sm">Abhi koi awaaz nahi. Pehli tu bhej!</p>
           </div>
         )}
-        {items.map((it, idx) => (
+        {visible.map((it, idx) => (
           <TrendingCard key={it.id} item={it} index={idx} />
         ))}
       </div>
